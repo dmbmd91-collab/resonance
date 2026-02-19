@@ -1,0 +1,6 @@
+{
+  "appId": "com.jin.statv3",
+  "appName": "진 스탯 대쉬보드 V3",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

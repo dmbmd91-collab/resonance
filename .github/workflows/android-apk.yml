@@ -34,8 +34,9 @@ jobs:
       - name: Initialize Capacitor
         run: npx cap init myapp com.example.myapp --web-dir=.
 
-      - name: Add Android platform
-        run: npx cap add android
+      - name: Sync Android
+        run: npx cap sync android
+
 
       - name: Capacitor sync android
         run: npx cap sync android

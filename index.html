@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>휴돌 실험실</title>
+</head>
+<body>
+
+<h1>버튼 눌러봐 😎</h1>
+
+<button onclick="randomNumber()">랜덤 숫자 생성</button>
+
+<p id="result"></p>
+
+<script>
+function randomNumber() {
+  const num = Math.floor(Math.random() * 100);
+  document.getElementById("result").innerText = "숫자: " + num;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,844 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>진의 운동 대시보드 v3</title>
+  <style>
+    :root{
+      --bg:#0b0c10;
+      --card:rgba(255,255,255,.06);
+      --line:rgba(255,255,255,.14);
+      --txt:#eaf0ff;
+      --muted:rgba(234,240,255,.76);
+      --good:#34d399;
+      --info:#60a5fa;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--txt);font-family:'Malgun Gothic','Apple SD Gothic Neo','Pretendard','Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.45}
+    .wrap{max-width:1120px;margin:0 auto;padding:18px}
+    .top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    h1{margin:0;font-size:24px;letter-spacing:-.02em}
+    .sub{margin:6px 0 0;color:var(--muted);line-height:1.45}
+    .tag{display:inline-block;padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.06)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .tab{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);padding:10px 12px;border-radius:999px;font-weight:800;cursor:pointer}
+    .tab.active{background:linear-gradient(135deg,rgba(110,231,183,.22),rgba(59,130,246,.22));border-color:rgba(147,197,253,.45)}
+    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-top:14px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .big{font-size:44px;font-weight:900;letter-spacing:-.02em}
+    .pill{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:14px}
+    .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid var(--line)}
+    .bar>div{height:100%;width:0%;background:linear-gradient(90deg,var(--good),var(--info));transition:width .2s ease}
+    button{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:11px 12px;background:rgba(255,255,255,.08);color:var(--txt);font-weight:800;cursor:pointer;font-family:inherit}
+    .primary{background:linear-gradient(135deg, rgba(110,231,183,.2), rgba(59,130,246,.2));border-color:rgba(147,197,253,.35)}
+    .danger{border-color:rgba(251,113,133,.4);background:rgba(251,113,133,.12)}
+    input,textarea,select{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:var(--txt);font-family:inherit}
+    .check{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(255,255,255,.1);margin:8px 0;border-radius:12px;background:rgba(255,255,255,.04)}
+    .check input{flex:0 0 auto;width:18px;height:18px;margin:2px 0 0;vertical-align:middle;transform:translateY(1px)}
+    .check span{display:block;flex:1;line-height:1.45}
+    .check b{white-space:nowrap}
+    .log{height:230px;overflow:auto;padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+    .hidden{display:none !important}
+    .muted{color:var(--muted)}
+    .tiny{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+    .kpi{display:grid;gap:10px}
+    .hl{color:var(--good);font-weight:900}
+    .warn{color:var(--warn);font-weight:900}
+    .sep{height:1px;background:rgba(255,255,255,.11);margin:12px 0}
+    .grid25{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+    .dayCell{padding:10px;border:1px solid rgba(255,255,255,.14);border-radius:12px;text-align:center;cursor:pointer}
+    .dayDone{background:rgba(52,211,153,.18);border-color:rgba(52,211,153,.35)}
+    .dayToday{border-color:rgba(96,165,250,.6)}
+    canvas{width:100%;height:260px;border-radius:12px;background:rgba(0,0,0,.2);border:1px solid var(--line)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>진의 운동 관리 대시보드 v3</h1>
+      <div class="sub">매일 루틴 점검, 습관·몸무게·점수를 합쳐서 간단히 관리해요.</div>
+    </div>
+    <div class="tag" id="todayTag">DAY: -</div>
+  </div>
+
+  <div class="nav">
+    <button class="tab active" data-tab="today">오늘</button>
+    <button class="tab" data-tab="p25">25일 루틴</button>
+    <button class="tab" data-tab="stats">통계/리포트</button>
+  </div>
+
+  <section id="tab-today">
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:flex-end">
+          <div>
+            <div class="muted">오늘 점수</div>
+            <div class="big" id="lvl">0</div>
+          </div>
+          <div style="text-align:right">
+            <div class="muted">점수</div>
+            <div style="font-size:26px;font-weight:900" id="xp">0</div>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="row" style="justify-content:space-between;color:var(--muted);font-size:12px">
+            <span id="xpNow">0</span>
+            <span id="xpNeed">0</span>
+          </div>
+          <div class="bar"><div id="barFill"></div></div>
+          <div class="tiny">오늘 점수: 최대로 100점 기록 가능</div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="row" style="align-items:flex-start">
+          <div style="flex:1;min-width:280px">
+            <div class="muted" style="font-weight:900;margin-bottom:8px">오늘의 퀘스트</div>
+            <div id="quests"></div>
+          </div>
+
+          <div style="flex:1;min-width:280px">
+            <div class="muted" style="font-weight:900;margin-bottom:8px">오늘 기록</div>
+            <div class="row" style="gap:8px">
+              <div style="flex:1">
+                <div class="muted" style="font-size:12px;font-weight:900;margin:0 0 6px">체중(kg)</div>
+                <input id="weight" inputmode="decimal" placeholder="예: 81.0" />
+              </div>
+              <div style="width:160px">
+                <div class="muted" style="font-size:12px;font-weight:900;margin:0 0 6px">기분</div>
+                <select id="mood">
+                  <option value="좋음">좋음</option>
+                  <option value="보통">보통</option>
+                  <option value="피곤">피곤</option>
+                  <option value="나쁨">나쁨</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:10px">
+              <div class="muted" style="font-size:12px;font-weight:900;margin:0 0 6px">메모</div>
+              <textarea id="note" rows="3" placeholder="오늘의 기분, 식단, 운동 메모"></textarea>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="primary" data-action="saveDay">저장</button>
+              <button data-action="reward">보상 받기</button>
+              <button class="danger" data-action="resetToday">오늘 초기화</button>
+            </div>
+            <div class="tiny">오늘 입력은 자동 저장됩니다. 보상은 하루에 한 번만 받을 수 있어요.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div style="font-weight:900">연속 기록</div>
+            <div class="tag" id="streakTag">STREAK: 0</div>
+          </div>
+          <div class="sep"></div>
+          <div class="pill"><b>오늘 완료</b><span id="score">0 / 0</span></div>
+          <div class="pill"><b>오늘 체중</b><span id="weightShow">-</span></div>
+          <div class="pill"><b>오늘 기분</b><span id="moodShow">-</span></div>
+          <div class="pill"><b>오늘 점수</b><span id="dailyShow">0 / 100</span></div>
+        </div>
+        <div class="card">
+          <div style="font-weight:900;margin-bottom:8px">로그</div>
+          <div class="log" id="log"></div>
+          <div class="tiny">최근 100개 로그를 보여줘요.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-p25" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <div class="muted" style="font-weight:900">25일 루틴</div>
+            <div id="p25Status" class="tiny">시작일이 아직 설정되지 않았습니다.</div>
+          </div>
+          <div class="tag" id="p25Badge">0 / 25</div>
+        </div>
+        <div class="sep"></div>
+        <div class="row">
+          <div style="min-width:240px;flex:1">
+            <div class="tiny" style="margin:0 0 6px">시작일</div>
+            <input id="p25Start" type="date" />
+          </div>
+          <button class="primary" data-action="p25StartToday">오늘 Day1로 시작</button>
+          <button data-action="p25MarkToday">오늘 Day 체크</button>
+          <button class="danger" data-action="p25Reset">25일 루틴 초기화</button>
+        </div>
+        <div class="row" style="align-items:center;margin-top:10px">
+          <label class="check" style="margin:0;flex:1">
+            <input type="checkbox" id="p25Auto" />
+            <span>저장할 때 오늘 Day 자동 체크</span>
+          </label>
+        </div>
+        <div class="sep"></div>
+        <div class="pill" style="margin-bottom:8px"><b>진행</b><span id="p25ProgressText">0 / 25</span></div>
+        <div class="bar"><div id="p25Fill"></div></div>
+        <div class="grid25" id="p25Grid"></div>
+          <div class="tiny">Day 체크 시 10점 보너스, 하루 최대 100점입니다.</div>
+      </div>
+      <div class="kpi">
+        <div class="card">
+          <div style="font-weight:900">루틴 상태</div>
+          <div class="tiny">시작일 기준으로 오늘 Day를 자동 계산합니다.</div>
+          <div class="sep"></div>
+          <div class="pill"><b>오늘 Day</b><span id="p25DayText">-</span></div>
+          <div class="pill"><b>완료 횟수</b><span id="p25Mini">0</span></div>
+        </div>
+        <div class="card">
+          <div style="font-weight:900">로그</div>
+          <div class="log" id="log2"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-stats" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div>
+            <div class="muted" style="font-weight:900">체중 추이</div>
+            <div class="tiny">최근 30/90일 혹은 전체 기록</div>
+          </div>
+          <div class="row">
+            <select id="rangeSel" style="width:150px">
+              <option value="30">최근 30일</option>
+              <option value="90">최근 90일</option>
+              <option value="all">전체</option>
+            </select>
+            <button data-action="redraw">갱신</button>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <canvas id="wCanvas" width="1000" height="320"></canvas>
+        <div class="row" style="margin-top:10px;gap:10px">
+          <div class="pill" style="flex:1"><b>변동</b><span id="wDelta">-</span></div>
+          <div class="pill" style="flex:1"><b>최소 / 최대</b><span id="wMinMax">-</span></div>
+          <div class="pill" style="flex:1"><b>평균</b><span id="wAvg">-</span></div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="card">
+          <div style="font-weight:900">데이터</div>
+          <div class="row">
+            <button class="primary" data-action="exportCsv">CSV 저장(UTF-8)</button>
+            <button data-action="exportJson">JSON 저장</button>
+          </div>
+          <div class="sep"></div>
+          <button class="danger" data-action="hardReset">전체 초기화</button>
+          <div class="tiny">CSV는 엑셀 열기용, JSON은 백업용으로 사용하세요.</div>
+        </div>
+        <div class="card">
+          <div class="tiny">로그</div>
+          <div class="log" id="log3"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  const QUESTS = [
+    { key:'protein2', label:'단백질 2회 이상 섭취', xp:15 },
+    { key:'steps6000', label:'걸음수 6,000+', xp:15 },
+    { key:'noFries', label:'지금부터 감자튀김 X', xp:15 },
+    { key:'meds', label:'약 복용 체크', xp:15 },
+    { key:'brush', label:'양치 + 물 한잔', xp:10 },
+    { key:'ram', label:'RAM 비우기', xp:10 },
+    { key:'focus25', label:'집중 25분', xp:10 },
+    { key:'water', label:'물 1.5L', xp:10 }
+  ];
+
+  const KEY = 'jin_stat_dashboard_v3_rebuilt';
+  const DAILY_XP_CAP = 100;
+
+  const defaultState = () => ({
+    version: 3,
+    streak: 0,
+    lastActiveDate: '',
+    rewardDate: '',
+    dailyXP: {},
+    project25: { startDate: '', done: {}, xpGiven: {}, autoMarkOnSave: true },
+    logs: ['시작! 오늘 루틴을 완료하고 점수를 채워보세요.'],
+    records: {}
+  });
+
+  let s = load();
+  let currentTab = 'today';
+
+  function todayLocal() {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function dateToMs(ymd) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, d).getTime();
+  }
+
+  function save() {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return defaultState();
+      const obj = JSON.parse(raw);
+      const merged = { ...defaultState(), ...obj };
+      merged.project25 = { ...defaultState().project25, ...(obj.project25 || {}) };
+      merged.records = merged.records || {};
+      merged.logs = Array.isArray(merged.logs) ? merged.logs : defaultState().logs;
+      merged.dailyXP = merged.dailyXP || {};
+      for (const d of Object.keys(merged.records)) {
+        merged.records[d] = normalizeRecord(merged.records[d]);
+      }
+      return merged;
+    } catch {
+      return defaultState();
+    }
+  }
+
+  function normalizeRecord(rec) {
+    const base = { checks: {}, xpGiven: {}, weight: '', mood: '좋음', note: '', savedAt: '', savedBonus: false };
+    const r = { ...base, ...(rec || {}) };
+    r.checks = r.checks || {};
+    r.xpGiven = r.xpGiven || {};
+    for (const q of QUESTS) {
+      if (typeof r.checks[q.key] !== 'boolean') r.checks[q.key] = false;
+      if (typeof r.xpGiven[q.key] !== 'boolean') r.xpGiven[q.key] = !!r.checks[q.key];
+    }
+    if (typeof r.weight !== 'string') r.weight = String(r.weight || '');
+    if (typeof r.mood !== 'string') r.mood = '좋음';
+    if (typeof r.note !== 'string') r.note = String(r.note || '');
+    return r;
+  }
+
+  function ensureTodayRecord() {
+    const d = todayLocal();
+    if (!s.records[d]) s.records[d] = normalizeRecord({});
+    else s.records[d] = normalizeRecord(s.records[d]);
+    return s.records[d];
+  }
+
+  function addLog(msg) {
+    const t = new Date().toLocaleTimeString();
+    s.logs.unshift(`[${t}] ${msg}`);
+    s.logs = s.logs.slice(0, 100);
+    save();
+  }
+
+  function todayScoreTotal() {
+    return Number(s.dailyXP?.[todayLocal()] || 0);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function gainXP(amount, reason) {
+    const today = todayLocal();
+    const used = Number(s.dailyXP?.[today] || 0);
+    const remain = Math.max(0, DAILY_XP_CAP - used);
+    const applied = Math.min(amount, remain);
+
+    if (applied <= 0) {
+      addLog(`오늘 점수는 이미 ${DAILY_XP_CAP}점에 도달했습니다. (${reason}) 반영 안됨`);
+      return;
+    }
+
+    s.dailyXP[today] = used + applied;
+    if (applied < amount) {
+      addLog(`점수 +${applied} (${reason}) [초과분 ${amount - applied} 제외]`);
+    } else {
+      addLog(`점수 +${applied} (${reason})`);
+    }
+    save();
+  }
+
+  function todayScore(rec) {
+    const total = QUESTS.length;
+    const done = QUESTS.filter((q) => rec.checks[q.key]).length;
+    return { done, total };
+  }
+
+  function updateStreakOnSave() {
+    const d = todayLocal();
+    if (s.lastActiveDate === d) return;
+    if (!s.lastActiveDate) s.streak = 1;
+    else {
+      const prev = dateToMs(s.lastActiveDate);
+      const cur = dateToMs(d);
+      const diff = Math.round((cur - prev) / (1000 * 60 * 60 * 24));
+      if (diff === 1) s.streak += 1;
+      else s.streak = 1;
+    }
+    s.lastActiveDate = d;
+    addLog(`연속 기록! ${s.streak}일 연속`);
+  }
+
+  function currentProjectDay(dateStr = todayLocal()) {
+    const start = s.project25.startDate;
+    if (!start) return null;
+    const diff = Math.round((dateToMs(dateStr) - dateToMs(start)) / (1000 * 60 * 60 * 24));
+    const day = diff + 1;
+    if (day < 1 || day > 25) return null;
+    return day;
+  }
+
+  function projectDoneCount() {
+    let count = 0;
+    for (let i = 1; i <= 25; i++) {
+      if (s.project25.done[String(i)]) count++;
+    }
+    return count;
+  }
+
+  function markProjectDayDone(day, source = '자동') {
+    const k = String(day);
+    const before = !!s.project25.done[k];
+    s.project25.done[k] = true;
+    if (!before && !s.project25.xpGiven[k]) {
+      s.project25.xpGiven[k] = true;
+      gainXP(10, `25일 루틴 Day ${day} 체크 (${source})`);
+    } else {
+      addLog(`Day ${day} 체크 (${source})`);
+      save();
+    }
+  }
+
+  function toggleProjectDay(day) {
+    const k = String(day);
+    const before = !!s.project25.done[k];
+    s.project25.done[k] = !before;
+    if (before && s.project25.xpGiven[k]) delete s.project25.xpGiven[k];
+    addLog(`Day ${day} ${s.project25.done[k] ? '완료' : '미완료'}`);
+    save();
+  }
+
+  function getWeightPoints(range) {
+    const dates = Object.keys(s.records).sort();
+    const cutoff = range === 'all' ? -1 : Date.now() - Number(range) * 86400000;
+    const pts = [];
+    for (const d of dates) {
+      const rec = normalizeRecord(s.records[d]);
+      const w = parseFloat(String(rec.weight).replace(',', '.'));
+      if (Number.isFinite(w) && (range === 'all' || dateToMs(d) >= cutoff)) {
+        pts.push({ date: d, w });
+      }
+    }
+    return pts;
+  }
+
+  function setWeightStats(pts) {
+    const dlt = document.getElementById('wDelta');
+    const minmax = document.getElementById('wMinMax');
+    const avg = document.getElementById('wAvg');
+    if (!pts.length) {
+      dlt.textContent = '-';
+      minmax.textContent = '-';
+      avg.textContent = '-';
+      return;
+    }
+    const ws = pts.map((p) => p.w);
+    const d = pts[pts.length - 1].w - pts[0].w;
+    dlt.textContent = `${d >= 0 ? '+' : ''}${d.toFixed(1)}kg`;
+    minmax.textContent = `${Math.min(...ws).toFixed(1)} / ${Math.max(...ws).toFixed(1)}kg`;
+    avg.textContent = `${(ws.reduce((a, b) => a + b, 0) / ws.length).toFixed(1)}kg`;
+  }
+
+  function drawWeightChart() {
+    const canvas = document.getElementById('wCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const range = document.getElementById('rangeSel')?.value || '30';
+    const pts = getWeightPoints(range);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (pts.length < 2) {
+      setWeightStats(pts);
+      return;
+    }
+
+    const ws = pts.map((p) => p.w);
+    const min = Math.min(...ws);
+    const max = Math.max(...ws);
+    const pad = Math.max(0.6, (max - min) * 0.12);
+    const yMin = min - pad;
+    const yMax = max + pad;
+    const left = 50;
+    const right = 16;
+    const top = 16;
+    const bottom = 34;
+    const w = canvas.width - left - right;
+    const h = canvas.height - top - bottom;
+
+    const x = (i) => left + (w * (i / (pts.length - 1)));
+    const y = (v) => top + (h * (1 - (v - yMin) / (yMax - yMin)));
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.16)';
+    for (let i = 1; i < 5; i++) {
+      const yy = top + (h * (i / 5));
+      ctx.beginPath();
+      ctx.moveTo(left, yy);
+      ctx.lineTo(canvas.width - right, yy);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(96,165,250,.95)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(pts[0].w));
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(x(i), y(pts[i].w));
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(52,211,153,.95)';
+    for (let i = 0; i < pts.length; i++) {
+      ctx.beginPath();
+      ctx.arc(x(i), y(pts[i].w), 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    setWeightStats(pts);
+  }
+
+  function exportCsvExcelUtf8() {
+    const header = ['date', 'day25', 'quests_done', 'quests_total', 'weight', 'mood', 'note', 'savedAt', ...QUESTS.map((q) => q.key)];
+    const rows = [header];
+    const dates = Object.keys(s.records).sort();
+    for (const d of dates) {
+      const rec = normalizeRecord(s.records[d]);
+      const sc = todayScore(rec);
+      const day25 = (() => {
+        const dd = currentProjectDay(d);
+        return dd ? String(dd) : '';
+      })();
+      rows.push([
+        d,
+        day25,
+        String(sc.done),
+        String(sc.total),
+        rec.weight,
+        rec.mood,
+        (rec.note || '').replaceAll('\r', ' ').replaceAll('\n', ' ').trim(),
+        rec.savedAt || '',
+        ...QUESTS.map((q) => (rec.checks[q.key] ? '1' : '0'))
+      ]);
+    }
+
+    const csv = rows
+      .map((r) => {
+        const out = r
+          .map((v) => {
+            const s = String(v ?? '');
+            return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+          })
+          .join(',');
+        return out;
+      })
+      .join('\n');
+
+    const BOM = '\ufeff';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jin_stat_dashboard_v2_${todayLocal()}_utf8.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    addLog('CSV 내보내기 완료');
+  }
+
+  function exportJsonBackup() {
+    const payload = { exportedAt: new Date().toISOString(), quests: QUESTS, state: s };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jin_stat_dashboard_v2_${todayLocal()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    addLog('JSON 내보내기 완료');
+  }
+
+  function renderTabs() {
+    document.querySelectorAll('.tab').forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === currentTab));
+    document.getElementById('tab-today').classList.toggle('hidden', currentTab !== 'today');
+    document.getElementById('tab-p25').classList.toggle('hidden', currentTab !== 'p25');
+    document.getElementById('tab-stats').classList.toggle('hidden', currentTab !== 'stats');
+  }
+
+  function renderToday() {
+    const d = todayLocal();
+    const rec = ensureTodayRecord();
+
+    document.getElementById('todayTag').textContent = `DAY: ${d}`;
+
+    const qWrap = document.getElementById('quests');
+    qWrap.innerHTML = QUESTS.map((q) => {
+      const c = rec.checks[q.key] ? 'checked' : '';
+      return `
+        <label class="check">
+          <input type="checkbox" data-q="${escapeHtml(q.key)}" ${c}/>
+          <span>${escapeHtml(q.label)} <b>+${q.xp}점</b></span>
+        </label>`;
+    }).join('');
+
+    const score = todayScoreTotal();
+    const pct = Math.max(0, Math.min(100, (score / DAILY_XP_CAP) * 100));
+    document.getElementById('lvl').textContent = score;
+    document.getElementById('xp').textContent = score;
+    document.getElementById('xpNow').textContent = score;
+    document.getElementById('xpNeed').textContent = DAILY_XP_CAP;
+    document.getElementById('barFill').style.width = `${pct}%`;
+
+    document.getElementById('weight').value = rec.weight || '';
+    document.getElementById('mood').value = rec.mood || '좋음';
+    document.getElementById('note').value = rec.note || '';
+
+    const sc = todayScore(rec);
+    const scoreText = `${sc.done} / ${sc.total}`;
+    const scoreEl = document.getElementById('score');
+    const scoreClass = sc.done === sc.total ? 'hl' : sc.done >= Math.ceil(sc.total * 0.6) ? 'warn' : '';
+    scoreEl.innerHTML = `<span class="${scoreClass}">${scoreText}</span>`;
+    document.getElementById('weightShow').textContent = rec.weight ? `${rec.weight} kg` : '-';
+    document.getElementById('moodShow').textContent = rec.mood || '-';
+    document.getElementById('streakTag').textContent = `STREAK: ${s.streak}`;
+
+    document.getElementById('dailyShow').textContent = `${score} / ${DAILY_XP_CAP}`;
+
+    const logHtml = s.logs.map((x) => `<div>${escapeHtml(x)}</div>`).join('');
+    document.getElementById('log').innerHTML = logHtml;
+  }
+
+  function renderP25() {
+    const startInput = document.getElementById('p25Start');
+    startInput.value = s.project25.startDate || '';
+    document.getElementById('p25Auto').checked = !!s.project25.autoMarkOnSave;
+
+    const day = currentProjectDay(todayLocal());
+    const doneCount = projectDoneCount();
+    document.getElementById('p25Badge').textContent = `${doneCount} / 25`;
+    document.getElementById('p25ProgressText').textContent = `${doneCount} / 25`;
+    document.getElementById('p25DayText').textContent = day ? `Day ${day}` : '-';
+    document.getElementById('p25Mini').textContent = `${doneCount}`;
+    document.getElementById('p25Fill').style.width = `${(doneCount / 25) * 100}%`;
+    document.getElementById('p25Status').textContent = s.project25.startDate
+      ? `START: ${s.project25.startDate}`
+      : '시작일을 먼저 설정해주세요.';
+
+    const grid = document.getElementById('p25Grid');
+    grid.innerHTML = '';
+    for (let i = 1; i <= 25; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'dayCell';
+      cell.dataset.day = String(i);
+      if (s.project25.done[String(i)]) cell.classList.add('dayDone');
+      if (day === i) cell.classList.add('dayToday');
+      cell.innerHTML = `Day ${i}<div style="font-size:11px;opacity:.8;margin-top:4px">${s.project25.done[String(i)] ? '완료' : '미완료'}</div>`;
+      grid.appendChild(cell);
+    }
+
+    const logHtml = s.logs.map((x) => `<div>${escapeHtml(x)}</div>`).join('');
+    document.getElementById('log2').innerHTML = logHtml;
+  }
+
+  function renderStats() {
+    requestAnimationFrame(drawWeightChart);
+    const logHtml = s.logs.map((x) => `<div>${escapeHtml(x)}</div>`).join('');
+    document.getElementById('log3').innerHTML = logHtml;
+  }
+
+  function renderAll() {
+    renderTabs();
+    renderToday();
+    if (currentTab === 'p25') renderP25();
+    if (currentTab === 'stats') renderStats();
+  }
+
+  function saveDay() {
+    const rec = ensureTodayRecord();
+    rec.weight = document.getElementById('weight').value.trim();
+    rec.mood = document.getElementById('mood').value;
+    rec.note = document.getElementById('note').value.trim();
+    rec.savedAt = new Date().toISOString();
+    updateStreakOnSave();
+
+    if (!rec.savedBonus) {
+      rec.savedBonus = true;
+      gainXP(6, '오늘 기록 저장 보너스');
+    } else {
+      addLog('오늘 기록은 이미 저장 보너스를 받았습니다.');
+    }
+
+    if (s.project25.autoMarkOnSave) {
+      const day = currentProjectDay(todayLocal());
+      if (day) markProjectDayDone(day, '자동');
+    }
+
+    s.records[todayLocal()] = rec;
+    save();
+    renderAll();
+  }
+
+  function reward() {
+    const d = todayLocal();
+    if (s.rewardDate === d) {
+      addLog('오늘 보상은 이미 받았습니다. 내일 다시 도전하세요.');
+      return renderAll();
+    }
+
+    s.rewardDate = d;
+    const rec = ensureTodayRecord();
+    const sc = todayScore(rec);
+    const base = 5 + sc.done * 2;
+    const rand = Math.floor(Math.random() * 10);
+    const total = base + rand;
+    gainXP(total, `오늘 보상 (${base} + ${rand})`);
+    addLog(`보상 지급! 오늘 퀘스트 완료 ${sc.done}/${sc.total}`);
+    save();
+    renderAll();
+  }
+
+  function resetToday() {
+    if (!confirm('오늘 기록(퀘스트/체중/기분/메모)을 초기화할까요?')) return;
+    s.records[todayLocal()] = normalizeRecord({});
+    addLog('오늘 기록이 초기화되었습니다.');
+    save();
+    renderAll();
+  }
+
+  function hardReset() {
+    if (!confirm('전체 초기화(점수, 기록, 로그)를 진행할까요?')) return;
+    if (!confirm('되돌릴 수 없습니다. 정말 실행할까요?')) return;
+    localStorage.removeItem(KEY);
+    s = defaultState();
+    addLog('전체 데이터 초기화 완료');
+    renderAll();
+  }
+
+  function handleQuestToggle(key, checked) {
+    const rec = ensureTodayRecord();
+    rec.checks[key] = checked;
+    const q = QUESTS.find((x) => x.key === key);
+    if (checked && q && !rec.xpGiven[key]) {
+      rec.xpGiven[key] = true;
+      gainXP(q.xp, `퀘스트 완료: ${q.label}`);
+    } else {
+      save();
+    }
+    s.records[todayLocal()] = rec;
+    save();
+    renderAll();
+  }
+
+  document.addEventListener('click', (e) => {
+    const tabBtn = e.target.closest('.tab');
+    if (tabBtn) {
+      currentTab = tabBtn.dataset.tab;
+      renderAll();
+      return;
+    }
+
+    const actionBtn = e.target.closest('[data-action]');
+    if (actionBtn) {
+      const a = actionBtn.dataset.action;
+      if (a === 'saveDay') return saveDay();
+      if (a === 'reward') return reward();
+      if (a === 'resetToday') return resetToday();
+      if (a === 'hardReset') return hardReset();
+      if (a === 'exportCsv') return exportCsvExcelUtf8();
+      if (a === 'exportJson') return exportJsonBackup();
+      if (a === 'redraw') return drawWeightChart();
+      if (a === 'p25StartToday') {
+        s.project25.startDate = todayLocal();
+        addLog(`25일 루틴 시작: ${s.project25.startDate}`);
+        save();
+        renderAll();
+        return;
+      }
+      if (a === 'p25Reset') {
+        if (!confirm('25일 루틴 데이터를 초기화할까요?')) return;
+        s.project25 = { startDate: '', done: {}, xpGiven: {}, autoMarkOnSave: true };
+        addLog('25일 루틴 초기화');
+        save();
+        renderAll();
+        return;
+      }
+      if (a === 'p25MarkToday') {
+        if (!s.project25.startDate) {
+          alert('25일 루틴이 시작되지 않았습니다.');
+          return;
+        }
+        const day = currentProjectDay(todayLocal());
+        if (!day) {
+          alert('오늘은 Day 1~25 구간이 아닙니다.');
+          return;
+        }
+        markProjectDayDone(day, '수동');
+        save();
+        renderAll();
+      }
+    }
+
+    const cell = e.target.closest('.dayCell');
+    if (cell && currentTab === 'p25') {
+      const day = Number(cell.dataset.day);
+      toggleProjectDay(day);
+      renderAll();
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.matches('input[type="checkbox"][data-q]')) {
+      return handleQuestToggle(t.getAttribute('data-q'), t.checked);
+    }
+    if (t.id === 'p25Start') {
+      s.project25.startDate = t.value || '';
+      addLog(s.project25.startDate ? `25일 루틴 시작일 변경: ${s.project25.startDate}` : '25일 루틴 시작일 제거');
+      save();
+      renderAll();
+    }
+    if (t.id === 'p25Auto') {
+      s.project25.autoMarkOnSave = !!t.checked;
+      addLog(`자동 체크 ${s.project25.autoMarkOnSave ? 'ON' : 'OFF'}`);
+      save();
+      renderAll();
+    }
+    if (t.id === 'rangeSel') drawWeightChart();
+  });
+
+  window.addEventListener('resize', () => {
+    if (currentTab === 'stats') requestAnimationFrame(drawWeightChart);
+  });
+
+  renderAll();
+</script>
+</body>
+</html>

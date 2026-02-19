@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>진 - 스탯 업 대시보드</title>
+  <style>
+    :root{
+      --bg:#0b0c10; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12);
+      --txt:#eaf0ff; --muted:rgba(234,240,255,.75);
+      --good:#34d399; --info:#60a5fa; --warn:#fbbf24; --bad:#fb7185;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+    .wrap{max-width:980px;margin:0 auto;padding:22px}
+    .top{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between}
+    h1{margin:0;font-size:22px;letter-spacing:-.02em}
+    .sub{margin:6px 0 0;color:var(--muted);line-height:1.45}
+    .tag{display:inline-block;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.06);font-size:12px;font-weight:800;opacity:.95}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}
+    @media (max-width:880px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .big{font-size:44px;font-weight:900;letter-spacing:-.02em;margin:10px 0 6px}
+    .pill{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;
+      background:rgba(255,255,255,.06);border:1px solid var(--line)}
+    .pill b{font-size:14px}
+    .pill span{font-variant-numeric:tabular-nums;color:rgba(234,240,255,.9)}
+    .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;border:1px solid var(--line)}
+    .bar>div{height:100%;width:0%;background:linear-gradient(90deg,var(--good),var(--info));transition:width .2s ease}
+    button{
+      border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:var(--txt);
+      padding:12px 14px;border-radius:14px;font-weight:800;cursor:pointer;user-select:none;
+      transition:transform .06s ease, background .2s ease, border-color .2s ease;
+    }
+    button:hover{background:rgba(255,255,255,.12)}
+    button:active{transform:scale(.985)}
+    .primary{background:linear-gradient(135deg, rgba(110,231,183,.22), rgba(59,130,246,.22));border-color:rgba(147,197,253,.35)}
+    .danger{border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.10)}
+    .tiny{font-size:12px;color:rgba(234,240,255,.65);line-height:1.5;margin-top:10px}
+    input, textarea, select{
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.25); color:var(--txt); outline:none;
+    }
+    input:focus, textarea:focus, select:focus{border-color:rgba(147,197,253,.55)}
+    label.check{display:flex;gap:10px;align-items:center;margin:8px 0;padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);cursor:pointer}
+    label.check:hover{background:rgba(255,255,255,.06)}
+    label.check input{width:auto}
+    .log{height:240px;overflow:auto;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);font-size:13px;line-height:1.45}
+    .sep{height:1px;background:rgba(255,255,255,.10);margin:12px 0}
+    .kpi{display:grid;gap:10px}
+    .hl{color:var(--good);font-weight:900}
+    .warn{color:var(--warn);font-weight:900}
+    .shake{animation:pop .14s ease}
+    @keyframes pop{from{transform:scale(1)}to{transform:scale(1.02)}}
+    a{color:#93c5fd}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>🧠 진의 스탯 업 대시보드</h1>
+        <div class="sub">
+          오늘의 “미니 승리”를 체크하면 XP가 쌓이고 레벨이 오른다 😎<br/>
+          (저장: 이 브라우저에 자동 저장 / 새로고침해도 유지)
+        </div>
+      </div>
+      <div class="tag" id="modeTag">DAY: -</div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:flex-end;">
+          <div>
+            <div style="color:var(--muted);font-weight:800;">현재 레벨</div>
+            <div class="big" id="lvl">1</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:var(--muted);font-weight:800;">XP</div>
+            <div style="font-size:26px;font-weight:900;" id="xp">0</div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px;">
+          <div class="row" style="justify-content:space-between;color:var(--muted);font-size:12px;">
+            <span id="xpNow">0</span>
+            <span id="xpNeed">10</span>
+          </div>
+          <div class="bar"><div id="barFill"></div></div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="row" style="gap:10px;align-items:flex-start;">
+          <div style="flex:1;min-width:260px;">
+            <div style="font-weight:900;margin-bottom:8px;">✅ 오늘 퀘스트</div>
+            <div id="quests"></div>
+            <div class="tiny">TIP: 체크 하나 = XP. “완벽”이 아니라 “진행”이 승리야 🙂</div>
+          </div>
+
+          <div style="flex:1;min-width:260px;">
+            <div style="font-weight:900;margin-bottom:8px;">📌 오늘 입력</div>
+
+            <div class="row" style="gap:8px;">
+              <div style="flex:1">
+                <div style="font-size:12px;color:var(--muted);font-weight:800;margin:0 0 6px;">체중(kg)</div>
+                <input id="weight" inputmode="decimal" placeholder="예: 81.0"/>
+              </div>
+              <div style="width:140px">
+                <div style="font-size:12px;color:var(--muted);font-weight:800;margin:0 0 6px;">기분</div>
+                <select id="mood">
+                  <option value="🙂 안정">🙂 안정</option>
+                  <option value="😐 보통">😐 보통</option>
+                  <option value="😣 불안">😣 불안</option>
+                  <option value="😎 자신감">😎 자신감</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top:10px">
+              <div style="font-size:12px;color:var(--muted);font-weight:800;margin:0 0 6px;">한 줄 메모</div>
+              <textarea id="note" rows="3" placeholder="예: 오늘은 ‘팝업창 끄기’ 성공. 피곤함 줄었음."></textarea>
+            </div>
+
+            <div class="row" style="margin-top:10px;">
+              <button class="primary" id="saveDay">💾 오늘 저장</button>
+              <button id="rewardBtn">🎁 오늘 보상</button>
+              <button class="danger" id="resetToday">🗑️ 오늘 초기화</button>
+            </div>
+
+            <div class="tiny">
+              “오늘 저장”은 체중/메모를 기록에 남겨줘. 보상은 하루 1번만 가능.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="kpi">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <div style="font-weight:900;">📊 상태판</div>
+            <div class="tag" id="streakTag">STREAK: 0</div>
+          </div>
+
+          <div style="margin-top:12px" class="pill"><b>연속일(출석)</b><span id="streak">0</span></div>
+          <div class="pill"><b>오늘 점수</b><span id="score">0 / 0</span></div>
+          <div class="pill"><b>오늘 체중</b><span id="weightShow">-</span></div>
+          <div class="pill"><b>기분</b><span id="moodShow">-</span></div>
+
+          <div class="sep"></div>
+
+          <div class="row">
+            <button id="exportBtn">⬇️ CSV 내보내기</button>
+            <button id="hardReset" class="danger">☠️ 전체 리셋</button>
+          </div>
+
+          <div class="tiny">
+            CSV는 “일자/체크/체중/메모” 기록 백업용이야.
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:900;margin-bottom:8px;">📜 로그</div>
+          <div class="log" id="log"></div>
+          <div class="tiny">※ 로그는 최근 80줄까지만 보관</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ===== Config (진 스타일 기본 퀘스트) =====
+  const QUESTS = [
+    { key: "protein2", label: "단백질 2번 ✅", xp: 8 },
+    { key: "steps6000", label: "6,000보 ✅", xp: 8 },
+    { key: "noFries", label: "버거 먹어도 감튀 X ✅", xp: 6 },
+    { key: "meds", label: "약 챙겨먹기 ✅", xp: 7 },
+    { key: "brush", label: "양치(최소 1회) ✅", xp: 5 },
+    { key: "ram", label: "RAM 비우기(종이/팝업 끄기) ✅", xp: 7 },
+  ];
+
+  const KEY = "jin_stat_dashboard_v1";
+
+  const today = () => new Date().toISOString().slice(0,10); // YYYY-MM-DD
+
+  const defaultState = () => ({
+    lvl: 1,
+    xp: 0,
+    streak: 0,
+    lastActiveDate: "",
+    rewardDate: "",
+    logs: ["🎬 시작! 오늘 퀘스트 체크로 미니 승리를 쌓자."],
+    // records: { "YYYY-MM-DD": { checks:{}, weight:"", mood:"", note:"", savedAt:"" } }
+    records: {}
+  });
+
+  let s = load();
+
+  // ===== Helpers =====
+  function save(){ localStorage.setItem(KEY, JSON.stringify(s)); }
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return defaultState();
+      const obj = JSON.parse(raw);
+      return { ...defaultState(), ...obj };
+    }catch{ return defaultState(); }
+  }
+  function addLog(msg){
+    const t = new Date().toLocaleTimeString();
+    s.logs.unshift(`[${t}] ${msg}`);
+    s.logs = s.logs.slice(0, 80);
+  }
+  function needForLevel(lvl){ return Math.floor(18 + (lvl-1)*8); } // 느리지만 꾸준히
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+  function ensureTodayRecord(){
+    const d = today();
+    if(!s.records[d]){
+      s.records[d] = { checks:{}, weight:"", mood:"🙂 안정", note:"", savedAt:"" };
+    }
+    // 누락 키 보정
+    for(const q of QUESTS){
+      if(typeof s.records[d].checks[q.key] !== "boolean") s.records[d].checks[q.key] = false;
+    }
+    return s.records[d];
+  }
+
+  function todayScore(rec){
+    const total = QUESTS.length;
+    const done = QUESTS.filter(q => rec.checks[q.key]).length;
+    return { done, total };
+  }
+
+  function gainXP(amount, reason){
+    s.xp += amount;
+    addLog(`✨ XP +${amount} (${reason})`);
+    levelUpIfNeeded();
+    save();
+  }
+
+  function levelUpIfNeeded(){
+    while(s.xp >= needForLevel(s.lvl)){
+      s.xp -= needForLevel(s.lvl);
+      s.lvl += 1;
+      addLog(`🆙 레벨업! Lv.${s.lvl} 달성`);
+    }
+  }
+
+  function updateStreakOnSave(){
+    const d = today();
+    if(s.lastActiveDate === d) return; // 오늘 이미 처리됨
+
+    if(!s.lastActiveDate){
+      s.streak = 1;
+    } else {
+      const prev = new Date(s.lastActiveDate);
+      const cur = new Date(d);
+      const diffDays = Math.round((cur - prev) / (1000*60*60*24));
+      if(diffDays === 1) s.streak += 1;
+      else s.streak = 1;
+    }
+    s.lastActiveDate = d;
+    addLog(`📅 출석 처리! 연속일: ${s.streak}`);
+  }
+
+  // ===== UI =====
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    modeTag: $("modeTag"),
+    lvl: $("lvl"),
+    xp: $("xp"),
+    xpNow: $("xpNow"),
+    xpNeed: $("xpNeed"),
+    barFill: $("barFill"),
+    quests: $("quests"),
+    weight: $("weight"),
+    mood: $("mood"),
+    note: $("note"),
+    saveDay: $("saveDay"),
+    rewardBtn: $("rewardBtn"),
+    resetToday: $("resetToday"),
+    streak: $("streak"),
+    streakTag: $("streakTag"),
+    score: $("score"),
+    weightShow: $("weightShow"),
+    moodShow: $("moodShow"),
+    log: $("log"),
+    exportBtn: $("exportBtn"),
+    hardReset: $("hardReset"),
+  };
+
+  function render(){
+    const d = today();
+    el.modeTag.textContent = `DAY: ${d}`;
+    const rec = ensureTodayRecord();
+
+    // quests
+    el.quests.innerHTML = QUESTS.map(q => {
+      const checked = rec.checks[q.key] ? "checked" : "";
+      return `
+        <label class="check">
+          <input type="checkbox" data-key="${q.key}" ${checked}/>
+          <div style="flex:1">
+            <div style="font-weight:900">${escapeHtml(q.label)}</div>
+            <div style="font-size:12px;color:var(--muted)">XP +${q.xp}</div>
+          </div>
+        </label>
+      `;
+    }).join("");
+
+    // top stats
+    const need = needForLevel(s.lvl);
+    const pct = Math.max(0, Math.min(100, (s.xp / need) * 100));
+    el.lvl.textContent = s.lvl;
+    el.xp.textContent = s.xp;
+    el.xpNow.textContent = s.xp;
+    el.xpNeed.textContent = need;
+    el.barFill.style.width = pct + "%";
+
+    // inputs
+    el.weight.value = rec.weight || "";
+    el.mood.value = rec.mood || "🙂 안정";
+    el.note.value = rec.note || "";
+
+    // right stats
+    el.streak.textContent = s.streak;
+    el.streakTag.textContent = `STREAK: ${s.streak}`;
+    const sc = todayScore(rec);
+    el.score.innerHTML = `<span class="${sc.done===sc.total ? 'hl' : sc.done>=Math.ceil(sc.total*0.6) ? 'warn' : ''}">${sc.done} / ${sc.total}</span>`;
+    el.weightShow.textContent = rec.weight ? `${rec.weight} kg` : "-";
+    el.moodShow.textContent = rec.mood || "-";
+
+    // reward status
+    const gotRewardToday = (s.rewardDate === d);
+    el.rewardBtn.textContent = gotRewardToday ? "🎁 오늘 보상(수령)" : "🎁 오늘 보상";
+    if(gotRewardToday) el.rewardBtn.classList.add("shake"); else el.rewardBtn.classList.remove("shake");
+
+    // log
+    el.log.innerHTML = s.logs.map(line => `<div>${escapeHtml(line)}</div>`).join("");
+
+    wire();
+    save();
+  }
+
+  // 이벤트는 중복 방지 위해 한번만 연결
+  let wired = false;
+  function wire(){
+    if(wired) return;
+    wired = true;
+
+    // 체크박스 이벤트
+    document.addEventListener("change", (e) => {
+      const t = e.target;
+      if(!(t && t.matches('input[type="checkbox"][data-key]'))) return;
+
+      const rec = ensureTodayRecord();
+      const key = t.getAttribute("data-key");
+      const q = QUESTS.find(x => x.key === key);
+      const before = rec.checks[key];
+
+      rec.checks[key] = t.checked;
+
+      // 체크할 때만 XP 지급(해제는 XP 회수 안 함: 도파민 우선 😎)
+      if(!before && t.checked && q){
+        gainXP(q.xp, `퀘스트 완료: ${q.label}`);
+      } else {
+        addLog(`📝 체크 변경: ${q ? q.label : key} = ${t.checked ? "ON" : "OFF"}`);
+        save();
+      }
+      render();
+    });
+
+    el.saveDay.addEventListener("click", () => {
+      const rec = ensureTodayRecord();
+      rec.weight = el.weight.value.trim();
+      rec.mood = el.mood.value;
+      rec.note = el.note.value.trim();
+      rec.savedAt = new Date().toISOString();
+
+      updateStreakOnSave();
+
+      // 저장 보너스 XP (하루 1회)
+      const d = today();
+      const flagKey = "_savedBonus";
+      if(!rec[flagKey]){
+        rec[flagKey] = true;
+        gainXP(6, "오늘 저장 보너스");
+      } else {
+        addLog("💾 오늘 저장 완료(보너스는 이미 수령)");
+        save();
+      }
+
+      render();
+    });
+
+    el.rewardBtn.addEventListener("click", () => {
+      const d = today();
+      if(s.rewardDate === d){
+        addLog("🎁 오늘 보상은 이미 받았어.");
+        render();
+        return;
+      }
+      s.rewardDate = d;
+
+      // 보상 로직: 체크 기반 + 랜덤
+      const rec = ensureTodayRecord();
+      const sc = todayScore(rec);
+      const base = 5 + sc.done * 2;           // 체크 많이 할수록 보상 증가
+      const rand = Math.floor(Math.random()*10); // 0~9
+      const total = base + rand;
+
+      gainXP(total, `오늘 보상 (기본 ${base} + 랜덤 ${rand})`);
+      addLog(`🎉 보상 수령! 오늘 점수 ${sc.done}/${sc.total}`);
+      render();
+    });
+
+    el.resetToday.addEventListener("click", () => {
+      if(!confirm("오늘 기록(체크/체중/메모)만 초기화할까? XP/레벨은 유지돼.")) return;
+      const d = today();
+      s.records[d] = { checks:{}, weight:"", mood:"🙂 안정", note:"", savedAt:"" };
+      // 체크 키 보정
+      ensureTodayRecord();
+      addLog("🗑️ 오늘 기록 초기화 완료");
+      save();
+      render();
+    });
+
+    el.exportBtn.addEventListener("click", () => {
+      // CSV: date, checks_done, total, weight, mood, note
+      const rows = [["date","checks_done","checks_total","weight","mood","note"]];
+      const dates = Object.keys(s.records).sort();
+      for(const d of dates){
+        const rec = s.records[d];
+        if(!rec) continue;
+        const done = QUESTS.filter(q => rec.checks && rec.checks[q.key]).length;
+        const total = QUESTS.length;
+        rows.push([
+          d,
+          String(done),
+          String(total),
+          (rec.weight || ""),
+          (rec.mood || ""),
+          (rec.note || "").replaceAll("\n"," ").trim()
+        ]);
+      }
+      const csv = rows.map(r => r.map(cell => {
+        const v = String(cell ?? "");
+        // CSV escape
+        return /[",\n]/.test(v) ? `"${v.replaceAll('"','""')}"` : v;
+      }).join(",")).join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `jin_stat_export_${today()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      addLog("⬇️ CSV 내보내기 완료");
+      render();
+    });
+
+    el.hardReset.addEventListener("click", () => {
+      if(!confirm("전체 리셋(레벨/XP/기록 전부 삭제)할까? 진짜로?")) return;
+      if(!confirm("마지막 확인: 되돌릴 수 없어. 그래도 할까?")) return;
+      localStorage.removeItem(KEY);
+      s = defaultState();
+      addLog("☠️ 전체 리셋 완료. 새 게임 시작!");
+      render();
+    });
+  }
+
+  // first render
+  render();
+</script>
+</body>
+</html>

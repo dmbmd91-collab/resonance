@@ -1,0 +1,487 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>하루 레벨업 클릭 게임</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --bg-soft: #ece6db;
+      --ink: #1f2a37;
+      --muted: #5f6b7a;
+      --panel: rgba(255, 255, 255, 0.74);
+      --line: rgba(31, 42, 55, 0.12);
+      --accent: #ff7a30;
+      --accent-2: #ffbc42;
+      --mint: #19b394;
+      --shadow: 0 22px 50px rgba(39, 31, 16, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Pretendard Variable", "SUIT", "Noto Sans KR", sans-serif;
+      background:
+        radial-gradient(circle at 16% 12%, #ffe4b6 0%, transparent 42%),
+        radial-gradient(circle at 82% 16%, #ffd2be 0%, transparent 34%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 18px 32px;
+    }
+
+    .shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 22px;
+      animation: rise .45s ease;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.3rem, 2.3vw, 1.9rem);
+      letter-spacing: -0.03em;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: .95rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 800;
+      font-size: .78rem;
+      border: 1px solid rgba(255, 122, 48, .35);
+      background: linear-gradient(135deg, rgba(255, 122, 48, .14), rgba(255, 188, 66, .18));
+      white-space: nowrap;
+    }
+
+    .grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1.35fr .85fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .shell { padding: 16px; border-radius: 20px; }
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      background: rgba(255,255,255,.78);
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .label {
+      font-size: .8rem;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .big {
+      margin: 6px 0 0;
+      font-size: clamp(2.1rem, 5vw, 3.4rem);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .xp-val {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .meter-meta {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: .74rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .bar {
+      margin-top: 6px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      background: rgba(31,42,55,.1);
+    }
+
+    .bar > div {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--mint), var(--accent));
+      transition: width .22s ease;
+    }
+
+    .row {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.75);
+      color: var(--ink);
+      border-radius: 13px;
+      padding: 11px 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      font-family: inherit;
+    }
+
+    button:hover { background: #fff; }
+    button:active { transform: scale(.98); }
+
+    .primary {
+      border-color: rgba(255, 122, 48, .4);
+      background: linear-gradient(135deg, rgba(255, 122, 48, .2), rgba(255, 188, 66, .22));
+    }
+
+    .primary:hover {
+      background: linear-gradient(135deg, rgba(255, 122, 48, .28), rgba(255, 188, 66, .3));
+    }
+
+    .danger {
+      border-color: rgba(204, 55, 55, .35);
+      background: rgba(204,55,55,.08);
+    }
+
+    .tiny {
+      margin-top: 11px;
+      font-size: .76rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stat {
+      display: grid;
+      gap: 10px;
+    }
+
+    .pill {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.8);
+    }
+
+    .pill b {
+      font-size: .84rem;
+      font-weight: 800;
+    }
+
+    .pill span {
+      font-size: .9rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log {
+      margin-top: 8px;
+      height: 206px;
+      overflow: auto;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      font-size: .79rem;
+      background: rgba(255,255,255,.72);
+      line-height: 1.5;
+    }
+
+    .foot {
+      text-align: center;
+      margin: 14px 0 0;
+      font-size: .74rem;
+      color: #6f7380;
+    }
+
+    .shake { animation: pulse .28s ease; }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="shell">
+      <div class="top">
+        <div>
+          <h1>하루 레벨업 클릭 게임</h1>
+          <p class="subtitle">클릭해서 <b>XP</b>를 모아 레벨업하세요. 콤보와 일일 보상으로 성장 속도를 끌어올릴 수 있어요.</p>
+        </div>
+        <div class="tag" id="modeTag">MODE: NORMAL</div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="hero">
+            <div>
+              <div class="label">현재 레벨</div>
+              <div class="big" id="level">1</div>
+            </div>
+            <div>
+              <div class="label" style="text-align:right;">XP</div>
+              <div class="xp-val" id="xp">0</div>
+            </div>
+          </div>
+
+          <div class="meter-meta">
+            <span id="xpNow">0</span>
+            <span id="xpNeed">10</span>
+          </div>
+          <div class="bar"><div id="barFill"></div></div>
+
+          <div class="row">
+            <button class="primary" id="clickBtn">탭해서 클릭 +XP</button>
+            <button id="comboBtn">콤보(10초)</button>
+            <button id="rewardBtn">오늘 보상 받기</button>
+            <button class="danger" id="resetBtn">전체 초기화</button>
+          </div>
+
+          <p class="tiny">데이터는 브라우저에 자동 저장됩니다(localStorage). 페이지를 새로고침해도 유지돼요.</p>
+        </div>
+
+        <div class="stat">
+          <div class="pill"><b>클릭당 XP</b><span id="perClick">1</span></div>
+          <div class="pill"><b>콤보 배수</b><span id="mult">x1</span></div>
+          <div class="pill"><b>오늘 보상</b><span id="reward">미수령</span></div>
+          <div class="pill"><b>연속 레벨업</b><span id="streak">0</span></div>
+          <div class="card">
+            <b style="display:block; font-size:.92rem;">게임 로그</b>
+            <div class="log" id="log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="foot">원하면 다음 단계로 미션 체크, 통계 차트, 스킬 트리도 붙일 수 있어요.</p>
+  </div>
+
+<script>
+  // --- state ---
+  const KEY = "hudol_levelup_v1";
+  const todayKey = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+
+  const defaultState = () => ({
+    lvl: 1,
+    xp: 0,
+    perClick: 1,
+    mult: 1,
+    comboUntil: 0,
+    rewardDate: "",
+    streak: 0,
+    logs: ["시작! 클릭해서 XP를 모아보자."]
+  });
+
+  let s = load();
+
+  // --- helpers ---
+  function needForLevel(lvl){ return Math.floor(10 + (lvl-1) * 6); }
+  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+  function now(){ return Date.now(); }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(s)); }
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return defaultState();
+      const obj = JSON.parse(raw);
+      return { ...defaultState(), ...obj };
+    }catch{
+      return defaultState();
+    }
+  }
+  function addLog(msg){
+    const t = new Date().toLocaleTimeString();
+    s.logs.unshift(`[${t}] ${msg}`);
+    s.logs = s.logs.slice(0, 60);
+  }
+
+  // --- UI refs ---
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    level: $("level"),
+    xp: $("xp"),
+    xpNow: $("xpNow"),
+    xpNeed: $("xpNeed"),
+    barFill: $("barFill"),
+    perClick: $("perClick"),
+    mult: $("mult"),
+    reward: $("reward"),
+    streak: $("streak"),
+    log: $("log"),
+    modeTag: $("modeTag"),
+    clickBtn: $("clickBtn"),
+    comboBtn: $("comboBtn"),
+    rewardBtn: $("rewardBtn"),
+    resetBtn: $("resetBtn")
+  };
+
+  function render(){
+    const activeCombo = s.comboUntil > now();
+    s.mult = activeCombo ? 3 : 1;
+
+    const need = needForLevel(s.lvl);
+    const pct = clamp((s.xp / need) * 100, 0, 100);
+
+    el.level.textContent = s.lvl;
+    el.xp.textContent = s.xp;
+    el.xpNow.textContent = s.xp;
+    el.xpNeed.textContent = need;
+    el.barFill.style.width = pct + "%";
+
+    el.perClick.textContent = s.perClick;
+    el.mult.textContent = "x" + s.mult;
+    el.streak.textContent = s.streak;
+
+    const gotRewardToday = (s.rewardDate === todayKey);
+    el.reward.textContent = gotRewardToday ? "수령" : "미수령";
+
+    el.modeTag.textContent = activeCombo ? "MODE: COMBO x3" : "MODE: NORMAL";
+    if(activeCombo) el.modeTag.classList.add("shake"); else el.modeTag.classList.remove("shake");
+
+    el.log.innerHTML = s.logs.map(line => `<div>${escapeHtml(line)}</div>`).join("");
+    save();
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function gainXP(amount){
+    s.xp += amount;
+    addLog(`XP +${amount} (현재 ${s.xp})`);
+    levelUpIfNeeded();
+    render();
+  }
+
+  function levelUpIfNeeded(){
+    let leveled = 0;
+    while(s.xp >= needForLevel(s.lvl)){
+      s.xp -= needForLevel(s.lvl);
+      s.lvl += 1;
+      leveled += 1;
+      s.streak += 1;
+
+      if(s.lvl % 3 === 0){
+        s.perClick += 1;
+        addLog(`레벨업! Lv.${s.lvl} / 클릭당 XP가 ${s.perClick}(으)로 증가`);
+      } else {
+        addLog(`레벨업! Lv.${s.lvl}`);
+      }
+    }
+    if(leveled === 0){
+      s.streak = Math.max(0, s.streak - 0.05);
+    }
+  }
+
+  // --- events ---
+  el.clickBtn.addEventListener("click", () => {
+    const amount = s.perClick * s.mult;
+    gainXP(amount);
+  });
+
+  el.comboBtn.addEventListener("click", () => {
+    s.comboUntil = now() + 10_000;
+    addLog("콤보 시작! 10초 동안 XP x3");
+    render();
+    setTimeout(() => render(), 10_200);
+  });
+
+  el.rewardBtn.addEventListener("click", () => {
+    if(s.rewardDate === todayKey){
+      addLog("오늘 보상은 이미 받았어요.");
+      render();
+      return;
+    }
+    s.rewardDate = todayKey;
+
+    const r = Math.random();
+    if(r < 0.45){
+      const bonus = 15 + Math.floor(Math.random()*10);
+      addLog(`오늘 보상! XP +${bonus}`);
+      s.xp += bonus;
+    } else if(r < 0.80){
+      s.perClick += 1;
+      addLog(`오늘 보상! 클릭당 XP +1 (현재 ${s.perClick})`);
+    } else {
+      s.comboUntil = now() + 15_000;
+      addLog("오늘 보상! 콤보 15초 활성화 (XP x3)");
+    }
+
+    levelUpIfNeeded();
+    render();
+  });
+
+  el.resetBtn.addEventListener("click", () => {
+    if(confirm("정말 초기화할까요? (레벨/XP 모두 리셋)")){
+      s = defaultState();
+      addLog("초기화 완료. 다시 시작!");
+      render();
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+const STORAGE_KEY = "hudol_mini_app_v1";
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return {
+        weight: "",
+        checks: { protein2: false, steps6000: false, noFries: false },
+        notes: "",
+      };
+    }
+    return JSON.parse(raw);
+  } catch {
+    return {
+      weight: "",
+      checks: { protein2: false, steps6000: false, noFries: false },
+      notes: "",
+    };
+  }
+}
+
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+
+function render() {
+  document.querySelector("#app").innerHTML = `
+    <div style="max-width:720px;margin:40px auto;font-family:system-ui;padding:16px;">
+      <h1 style="margin:0 0 8px;">휴돌 미니 웹앱 🚀</h1>
+      <p style="margin:0 0 20px;opacity:.8;">체크 + 체중 + 메모가 <b>브라우저에 저장</b>돼서 새로고침해도 남아.</p>
+
+      <section style="padding:16px;border:1px solid #ddd;border-radius:12px;margin-bottom:16px;">
+        <h2 style="margin:0 0 12px;font-size:18px;">오늘 체크</h2>
+        ${checkboxRow("protein2", "단백질 2번 했나")}
+        ${checkboxRow("steps6000", "6,000보 했나")}
+        ${checkboxRow("noFries", "버거 먹어도 감튀 X")}
+      </section>
+
+      <section style="padding:16px;border:1px solid #ddd;border-radius:12px;margin-bottom:16px;">
+        <h2 style="margin:0 0 12px;font-size:18px;">체중 기록</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="weight" inputmode="decimal" placeholder="예: 81.0"
+            value="${escapeHtml(state.weight)}"
+            style="flex:1;padding:10px;border:1px solid #ccc;border-radius:10px;font-size:16px;" />
+          <button id="saveWeight" style="padding:10px 14px;border:1px solid #222;border-radius:10px;background:#222;color:#fff;">
+            저장
+          </button>
+        </div>
+        <p style="margin:10px 0 0;opacity:.8;">현재 저장된 체중: <b>${escapeHtml(state.weight || "-")}</b></p>
+      </section>
+
+      <section style="padding:16px;border:1px solid #ddd;border-radius:12px;margin-bottom:16px;">
+        <h2 style="margin:0 0 12px;font-size:18px;">메모</h2>
+        <textarea id="notes" rows="4" placeholder="오늘 한 줄 메모..."
+          style="width:100%;padding:10px;border:1px solid #ccc;border-radius:10px;font-size:14px;">${escapeHtml(
+            state.notes
+          )}</textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button id="saveNotes" style="padding:10px 14px;border:1px solid #222;border-radius:10px;background:#222;color:#fff;">
+            메모 저장
+          </button>
+          <button id="resetAll" style="padding:10px 14px;border:1px solid #ccc;border-radius:10px;background:#fff;">
+            전체 초기화
+          </button>
+        </div>
+      </section>
+
+      <section style="padding:16px;border:1px solid #ddd;border-radius:12px;">
+        <h2 style="margin:0 0 12px;font-size:18px;">오늘 점수</h2>
+        <p style="margin:0;font-size:28px;"><b>${score()}</b> / 3</p>
+        <p style="margin:8px 0 0;opacity:.8;">(체크 3개 기준)</p>
+      </section>
+
+      <p style="margin:18px 0 0;opacity:.6;font-size:12px;">
+        저장은 localStorage(이 브라우저) 기반이야.
+      </p>
+    </div>
+  `;
+
+  wireEvents();
+}
+
+function checkboxRow(key, label) {
+  const checked = state.checks[key] ? "checked" : "";
+  return `
+    <label style="display:flex;gap:10px;align-items:center;margin:8px 0;cursor:pointer;">
+      <input type="checkbox" data-key="${key}" ${checked} style="transform:scale(1.2);" />
+      <span>${label}</span>
+    </label>
+  `;
+}
+
+function score() {
+  return Object.values(state.checks).filter(Boolean).length;
+}
+
+function wireEvents() {
+  document.querySelectorAll('input[type="checkbox"][data-key]').forEach((el) => {
+    el.addEventListener("change", (e) => {
+      const key = e.target.getAttribute("data-key");
+      state.checks[key] = e.target.checked;
+      saveState(state);
+      render();
+    });
+  });
+
+  document.querySelector("#saveWeight").addEventListener("click", () => {
+    const v = document.querySelector("#weight").value.trim();
+    state.weight = v;
+    saveState(state);
+    render();
+  });
+
+  document.querySelector("#saveNotes").addEventListener("click", () => {
+    const v = document.querySelector("#notes").value;
+    state.notes = v;
+    saveState(state);
+    render();
+  });
+
+  document.querySelector("#resetAll").addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    state = loadState();
+    render();
+  });
+}
+
+// 아주 단순한 HTML escape
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+render();
+
